@@ -2,11 +2,16 @@ package main
 
 import (
 	"fmt"
-	"mathcord/parser"
+	"mathcord/utils"
 )
 
 func main() {
-	fmt.Print("Result is ", parser.ShuntingYard("4 / 4 + (4 + 4) + 10"), "\n")
+	/*
+	hash := sha512.NewSha512()
 
-
+	hash.Update("Hello World!")
+	hash.Calculate()
+	fmt.Print(hash.GetHexDigest())
+*/
+	fmt.Print(utils.BinaryToDecimal(utils.IntegerToBinary(88, 64)))
 }
