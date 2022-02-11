@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"encoding/binary"
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 )
 
 func Index(vs []string, t string) int {
@@ -57,7 +57,7 @@ func Map(vs []string, f func(string) string) []string {
 }
 
 func ParseToFloat(num string) float64 {
-	numParsed, err := strconv.ParseFloat(num, 32)
+	numParsed, err := strconv.ParseFloat(strings.Trim(num, ""), 32)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,23 +65,22 @@ func ParseToFloat(num string) float64 {
 	return numParsed
 }
 
-func Min(a, b uint) uint {
+func Min(a, b uint64) uint64 {
 	if a < b {
 		return a
 	}
 	return b
 }
 
-func Max(a, b uint) uint {
+func Max(a, b uint64) uint64 {
 	if a > b {
 		return a
 	}
 	return b
 }
 
-func DecimalToHex(dec uint) string {
+func DecimalToHex(dec uint64) string {
 	hexVal := fmt.Sprintf("%x", dec)
-
 	return hexVal
 }
 
@@ -99,12 +98,20 @@ func StrToBinary(s string) string {
 	return res
 }
 
-func BinaryToDecimal(bin string) uint {
-	num, err := strconv.ParseInt(bin, 2, 64)
+func BinaryToDecimal(bin string) uint64 {
+	num, err := strconv.ParseUint(bin, 2, 64)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return uint(num)
+	return uint64(num)
+}
+
+func BinaryToDecimal32(bin string) uint32 {
+	num, err := strconv.ParseUint(bin, 2, 32)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return uint32(num)
 }
 
 func RotateRightByNBits(b []byte, n int) []byte {
@@ -115,7 +122,7 @@ func RotateRightByNBits(b []byte, n int) []byte {
 	return b
 }
 
-func RotateUintRightByNBits(b uint, n int) uint {
+func RotateUintRightByNBits(b uint64, n int) uint64 {
 	return (b >> n) | (b << (64 - n))
 }
 
@@ -124,7 +131,7 @@ func RotateStringRightByNBits(s string, n int) string {
 
 	rotated := (integerForm >> n) | (integerForm << (64 - n))
 
-	return IntegerToBinary(uint(rotated), len(s))
+	return IntegerToBinary(rotated,64)
 }
 
 func ShiftStringRightByNBits(s string, n int) string {
@@ -132,7 +139,7 @@ func ShiftStringRightByNBits(s string, n int) string {
 
 	shifted := integerForm >> n
 
-	return IntegerToBinary(uint(shifted), len(s))
+	return IntegerToBinary(shifted, 64)
 }
 
 func RotateByteRightByNBits(b byte, n int) byte {
@@ -147,11 +154,11 @@ func ShiftRightByNBits(b []byte, n int) []byte {
 	return b
 }
 
-func ShiftUintRightByNBits(b uint, n int) uint {
+func Shiftuint64RightByNBits(b uint64, n int) uint64 {
 	return b >> n
 }
 
-func IntegerToBinary(num uint, len int) string {
+func IntegerToBinary(num uint64, len int) string {
 	switch len {
 	case 8:
 		return fmt.Sprintf("%08b", num)
@@ -166,13 +173,20 @@ func IntegerToBinary(num uint, len int) string {
 
 }
 
-func IntegerTo128Bytes(num int) []byte {
-	bs := make([]byte, 128)
-	binary.LittleEndian.PutUint64(bs, uint64(num))
+func Integer32ToBinary(num uint32, len int) string {
+	switch len {
+	case 8:
+		return fmt.Sprintf("%08b", num)
+	case 16:
+		return fmt.Sprintf("%016b", num)
+	case 32:
+		return fmt.Sprintf("%032b", num)
+	case 64:
+		return fmt.Sprintf("%064b", num)
+	}
+	return fmt.Sprintf("%0128b", num)
 
-	return bs
 }
-
 
 func XorThree(one, two, three string) string {
 	oneInt := BinaryToDecimal(one)
@@ -181,7 +195,7 @@ func XorThree(one, two, three string) string {
 
 	res := oneInt ^ twoInt ^ threeInt
 
-	return IntegerToBinary(res, len(one))
+	return IntegerToBinary(res, 64)
 }
 
 func AddFour(A, B, C, D string) string {
@@ -192,5 +206,5 @@ func AddFour(A, B, C, D string) string {
 
 	sum := AInt + BInt + CInt + DInt
 
-	return IntegerToBinary(sum, len(A))
+	return IntegerToBinary(sum, 64)
 }

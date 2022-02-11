@@ -117,19 +117,17 @@ func NewQueue() *Queue {
 
 type Chunk [][]string
 
-func InitChunk(initVal string) *Chunk {
+func InitChunk(initVal string, numChunks int) *Chunk {
 	chunks := &Chunk{}
 
-	numChunks := len(initVal) / 512
 	for i := 0; i < numChunks; i++ {
-		chunk := make([]string, 64)
+		chunk := make([]string, 80)
 
-		for j := 0; j < 16; j++ {
-			chunk[j] = initVal[j:j + 32]
+		for j := i * 1024; j < 1024*(i+1); j += 64 {
+			chunk[j/64] = initVal[j : j+64]
 
 		}
-
-		for i := 16; i < 64; i++ {
+		for i := 16; i < 80; i++ {
 			PadWithWords(i, &chunk)
 
 		}
@@ -146,7 +144,7 @@ func DoA(chunk *[]string, j int) string {
 
 	elOne := utils.RotateStringRightByNBits(el, 19)
 	elTwo := utils.RotateStringRightByNBits(el, 61)
-	elThree := utils.RotateStringRightByNBits(el, 6)
+	elThree := utils.ShiftStringRightByNBits(el, 6)
 
 	ret := utils.XorThree(elOne, elTwo, elThree)
 
@@ -155,20 +153,16 @@ func DoA(chunk *[]string, j int) string {
 }
 
 func DoC(chunk *[]string, j int) string {
-	el := (*chunk)[j-2]
+	el := (*chunk)[j-15]
 
 	elOne := utils.RotateStringRightByNBits(el, 1)
 	elTwo := utils.RotateStringRightByNBits(el, 8)
-	elThree := utils.RotateStringRightByNBits(el, 7)
-
+	elThree := utils.ShiftStringRightByNBits(el, 7)
 	ret := utils.XorThree(elOne, elTwo, elThree)
 
 	return ret
 
 }
-
-
-
 
 func PadWithWords(g int, chunk *[]string) {
 	A := DoA(chunk, g)
@@ -176,27 +170,29 @@ func PadWithWords(g int, chunk *[]string) {
 	B := (*chunk)[g-7]
 	D := (*chunk)[g-16]
 
-	*chunk = append(*chunk, utils.AddFour(A, B, C, D))
+	added := utils.AddFour(A, B, C, D)
+
+	(*chunk)[g] = added
 
 }
 
 type Sha512Message struct {
-	Original 	string
-	Message  	string
-	Chunks   	*Chunk
-	NumChunks 	int
+	Original  string
+	Message   string
+	Chunks    *Chunk
+	NumChunks int
 }
 
 func (message *Sha512Message) InitAndAppendBits() {
 	message.Message = utils.StrToBinary(message.Original)
 	message.Message += "1"
 
-	lengthDiv := float64(len(message.Original)) / float64((512 - 64))
-	message.Message += strings.Repeat("0", len(message.Original)-int(math.Ceil(lengthDiv)))
+	lengthDiv := int(math.Ceil(float64(len(message.Original)) / float64((512 - 64))))
+	message.Message += strings.Repeat("0", ((1024-64)*lengthDiv - len(message.Message)))
 
-	message.Message += utils.IntegerToBinary(uint(len(message.Original)), 64)
+	message.Message += utils.IntegerToBinary(uint64(len(message.Original)), 64)
 
-	message.NumChunks = len(message.Message) / 512
+	message.NumChunks = lengthDiv
 }
 
 func (message *Sha512Message) GetLength() int {
@@ -206,31 +202,39 @@ func (message *Sha512Message) GetLength() int {
 func NewMessage(str string) *Sha512Message {
 	message := &Sha512Message{Original: str}
 	message.InitAndAppendBits()
-	message.Chunks = InitChunk(message.Message)
+	message.Chunks = InitChunk(message.Message, message.NumChunks)
 
 	return message
 }
 
 type Sha512Buffer struct {
-	A uint
-	B uint
-	C uint
-	D uint
-	E uint
-	F uint
-	G uint
-	H uint
+	A     uint64
+	B     uint64
+	C     uint64
+	D     uint64
+	E     uint64
+	F     uint64
+	G     uint64
+	H     uint64
+	APrev uint64
+	BPrev uint64
+	CPrev uint64
+	DPrev uint64
+	EPrev uint64
+	FPrev uint64
+	GPrev uint64
+	HPrev uint64
 }
 
-func (buff *Sha512Buffer) MajorVal() uint {
+func (buff *Sha512Buffer) MajorVal() uint64 {
 	return (buff.A & buff.B) ^ (buff.B & buff.C) ^ (buff.C & buff.A)
 }
 
-func (buff *Sha512Buffer) ChVal() uint {
-	return (buff.E & buff.F) ^ (-buff.E & buff.G)
+func (buff *Sha512Buffer) ChVal() uint64 {
+	return (buff.E & buff.F) ^ (^buff.E & buff.G)
 }
 
-func (buff *Sha512Buffer) SigmaE() uint {
+func (buff *Sha512Buffer) SigmaE() uint64 {
 	e14 := utils.RotateUintRightByNBits(buff.E, 14)
 	e18 := utils.RotateUintRightByNBits(buff.E, 18)
 	e41 := utils.RotateUintRightByNBits(buff.E, 41)
@@ -238,7 +242,7 @@ func (buff *Sha512Buffer) SigmaE() uint {
 	return e14 ^ e18 ^ e41
 }
 
-func (buff *Sha512Buffer) SigmaA() uint {
+func (buff *Sha512Buffer) SigmaA() uint64 {
 	a28 := utils.RotateUintRightByNBits(buff.A, 28)
 	a34 := utils.RotateUintRightByNBits(buff.A, 34)
 	a39 := utils.RotateUintRightByNBits(buff.A, 39)
@@ -246,7 +250,27 @@ func (buff *Sha512Buffer) SigmaA() uint {
 	return a28 ^ a34 ^ a39
 }
 
-func (buff *Sha512Buffer) ProcessBlock(K uint, MS string) {
+func (buff *Sha512Buffer) AddAndSetPrev() {
+	buff.A += buff.APrev
+	buff.B += buff.BPrev
+	buff.C += buff.CPrev
+	buff.D += buff.DPrev
+	buff.E += buff.EPrev
+	buff.F += buff.FPrev
+	buff.G += buff.GPrev
+	buff.H += buff.HPrev
+
+	buff.APrev = buff.A
+	buff.BPrev = buff.B
+	buff.CPrev = buff.C
+	buff.DPrev = buff.D
+	buff.EPrev = buff.E
+	buff.FPrev = buff.F
+	buff.GPrev = buff.G
+	buff.HPrev = buff.H
+}
+func (buff *Sha512Buffer) ProcessBlock(K uint64, MS string) {
+
 	M := utils.BinaryToDecimal(MS)
 
 	chVal := buff.ChVal()
@@ -261,6 +285,8 @@ func (buff *Sha512Buffer) ProcessBlock(K uint, MS string) {
 	buff.C = buff.B
 	buff.B = buff.A
 	buff.A = buff.SigmaA() + majVal + hVal
+
+	buff.AddAndSetPrev()
 }
 
 func (buff *Sha512Buffer) ToHexaDecimal() string {
@@ -279,6 +305,14 @@ func (buff *Sha512Buffer) ToHexaDecimal() string {
 
 func NewBuffer() *Sha512Buffer {
 	buffer := &Sha512Buffer{0x6a09e667f3bcc908,
+		0xbb67ae8584caa73b,
+		0x3c6ef372fe94f82b,
+		0xa54ff53a5f1d36f1,
+		0x510e527fade682d1,
+		0x9b05688c2b3e6c1f,
+		0x1f83d9abfb41bd6b,
+		0x5be0cd19137e2179,
+		0x6a09e667f3bcc908,
 		0xbb67ae8584caa73b,
 		0x3c6ef372fe94f82b,
 		0xa54ff53a5f1d36f1,

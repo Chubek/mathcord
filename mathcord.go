@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"mathcord/utils"
+	"mathcord/sha512"
 )
 
 func main() {
-	/*
+
 	hash := sha512.NewSha512()
 
-	hash.Update("Hello World!")
+	hash.Update("lll.")
 	hash.Calculate()
-	fmt.Print(hash.GetHexDigest())
-*/
-	fmt.Print(utils.BinaryToDecimal(utils.IntegerToBinary(88, 64)))
+	fmt.Print(len(hash.GetHexDigest()))
+
 }

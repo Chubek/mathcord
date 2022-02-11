@@ -21,8 +21,10 @@ func (sha512 *Sha512Hash) Update(str string) {
 }
 
 func (sha512 *Sha512Hash) Calculate() {
-	for i, m := range *sha512.Message.Chunks {
-		sha512.Buffer.ProcessBlock(constants.Sha512K[i], m)
+	for _, chunk := range *sha512.Message.Chunks {
+		for j, m := range chunk {
+			sha512.Buffer.ProcessBlock(constants.Sha512K[j], m)
+		}
 	}
 
 	sha512.HexDigest = sha512.Buffer.ToHexaDecimal()
