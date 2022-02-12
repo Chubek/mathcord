@@ -30,3 +30,11 @@ func (sha512 *Sha512Hash) Calculate() {
 func (sha512 *Sha512Hash) GetHexDigest() string {
 	return sha512.HexDigest
 }
+
+
+func HashWithSha512(data string) string {
+	h := NewSha512()
+	h.Update(data)
+	h.Calculate()
+	return h.GetHexDigest()
+}
