@@ -1,7 +1,6 @@
 package sha512
 
 import (
-	"mathcord/constants"
 	"mathcord/dtype"
 )
 
@@ -22,9 +21,7 @@ func (sha512 *Sha512Hash) Update(str string) {
 
 func (sha512 *Sha512Hash) Calculate() {
 	for _, chunk := range *sha512.Message.Chunks {
-		for j, m := range chunk {
-			sha512.Buffer.ProcessBlock(constants.Sha512K[j], m)
-		}
+			sha512.Buffer.ProcessBlock(&chunk)
 	}
 
 	sha512.HexDigest = sha512.Buffer.ToHexaDecimal()

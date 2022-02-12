@@ -80,7 +80,7 @@ func Max(a, b uint64) uint64 {
 }
 
 func DecimalToHex(dec uint64) string {
-	hexVal := fmt.Sprintf("%x", dec)
+	hexVal := fmt.Sprintf("%016x", dec)
 	return hexVal
 }
 
@@ -131,7 +131,7 @@ func RotateStringRightByNBits(s string, n int) string {
 
 	rotated := (integerForm >> n) | (integerForm << (64 - n))
 
-	return IntegerToBinary(rotated,64)
+	return IntegerToBinary(rotated, 64)
 }
 
 func ShiftStringRightByNBits(s string, n int) string {
@@ -154,7 +154,7 @@ func ShiftRightByNBits(b []byte, n int) []byte {
 	return b
 }
 
-func Shiftuint64RightByNBits(b uint64, n int) uint64 {
+func ShiftUintRightByNBits(b uint64, n int) uint64 {
 	return b >> n
 }
 
@@ -207,4 +207,14 @@ func AddFour(A, B, C, D string) string {
 	sum := AInt + BInt + CInt + DInt
 
 	return IntegerToBinary(sum, 64)
+}
+
+func ConvertBinaryToIntegerArray(arr []string) []uint64 {
+	var ret []uint64
+
+	for _, str := range arr {
+		ret = append(ret, BinaryToDecimal(str))
+	}
+
+	return ret
 }

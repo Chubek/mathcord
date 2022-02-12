@@ -9,8 +9,8 @@ func main() {
 
 	hash := sha512.NewSha512()
 
-	hash.Update("lll.")
+	hash.Update("GeeksForGeeks")
 	hash.Calculate()
-	fmt.Print(len(hash.GetHexDigest()))
+	fmt.Print(hash.GetHexDigest())
 
 }
