@@ -4,7 +4,6 @@ package dtype
 //credits for stack: https://www.educative.io/edpresso/how-to-implement-a-stack-in-golang
 
 import (
-	"math"
 	"mathcord/constants"
 	"mathcord/utils"
 	"strconv"
@@ -121,16 +120,24 @@ type Chunk [][]uint64
 func InitChunk(initVal string, numChunks int) *Chunk {
 	chunks := &Chunk{}
 
+	sliceIndexBeg := 0
 	for i := 0; i < numChunks; i++ {
 		chunk := make([]uint64, 80)
+		sliceIndexEnd := sliceIndexBeg + 1024
 
-		for j := i * 1024; j < 1024*(i+1); j += 64 {
-			val := initVal[j : j+64]
-			chunk[j/64] = utils.BinaryToDecimal(val)
+		concernedBlock := initVal[sliceIndexBeg:sliceIndexEnd]
 
+		sliceIndexBeg = sliceIndexEnd
+
+		for j := 0; j < 1024; j += 64 {
+			val := concernedBlock[j : j+64]
+			ind := j / 64
+
+			chunk[ind] = utils.BinaryToDecimal(val)
 		}
-		for i := 16; i < 80; i++ {
-			PadWithWords(i, &chunk)
+
+		for m := 16; m < 80; m++ {
+			PadWithWords(m, &chunk)
 
 		}
 
@@ -167,8 +174,6 @@ func DoC(chunk *[]uint64, j int) uint64 {
 
 }
 
-
-
 func PadWithWords(g int, chunk *[]uint64) {
 	A := DoA(chunk, g)
 	C := DoC(chunk, g)
@@ -194,12 +199,20 @@ func (message *Sha512Message) InitAndAppendBits() {
 
 	message.Message += "1"
 
-	lengthDiv := int(math.Ceil(float64(len(message.Original)) / float64((512 - 64))))
-	message.Message += strings.Repeat("0", ((1024-64)*lengthDiv - len(message.Message)))
+	val := len(message.Message) % 1024
 
-	message.Message += utils.IntegerToBinary(lengthOriginal, 64)
+	var toBeAdded int
 
-	message.NumChunks = lengthDiv
+	if 1024 - val >= 128 {
+		toBeAdded = 1024 - val
+	} else if 1024 - val < 128 {
+		toBeAdded = 2048 - val
+	}
+	message.Message += strings.Repeat("0", toBeAdded - 128)
+	integerToBeAdded := utils.IntegerToBinary(lengthOriginal, 128)
+	message.Message += integerToBeAdded
+	lenMessageDiv := len(message.Message)
+	message.NumChunks = lenMessageDiv / 1024
 }
 
 func (message *Sha512Message) GetLength() int {
@@ -246,7 +259,7 @@ func SigmaE(E uint64) uint64 {
 	e18 := utils.RotateUintRightByNBits(E, 18)
 	e41 := utils.RotateUintRightByNBits(E, 41)
 
-	resE :=  e14 ^ e18 ^ e41
+	resE := e14 ^ e18 ^ e41
 
 	return resE
 }
