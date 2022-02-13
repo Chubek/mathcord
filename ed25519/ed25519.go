@@ -210,7 +210,7 @@ func PublicKey(sk string) string {
 	h := sha512.HashWithSha512(sk)
 	
 	a1 := b - 2
-	a2 := int64(math.Pow(float64(a1), 2))
+	a2 := int64(math.Pow(2, float64(a1)))
 	
 	var sumA int64
 	sumA = 0
@@ -233,7 +233,7 @@ func Signature(m, sk, pk string) *big.Int {
 	h := sha512.HashWithSha512(sk)
 	
 	a1 := b - 2
-	a2 := int64(math.Pow(float64(a1), 2))
+	a2 := int64(math.Pow(2, float64(a1)))
 	
 	var sumA int64
 	sumA = 0
@@ -272,3 +272,81 @@ func Signature(m, sk, pk string) *big.Int {
 	return bigIntS
 
 }
+
+
+func IsOnCurve(P []int64) bool {
+	x := P[0]
+	y := P[1]
+
+	return (-x*x + y*y - 1 - d*x*x*y*y) %Q == 0
+}
+
+func DecodeInt(s string) int64 {
+	var sum int64
+
+	for i := int64(0); i < b; i++ {
+		powI := int64(math.Pow(2, float64(i)))
+		sum += powI + Bit(s, i)
+	}
+
+	return sum
+}
+
+
+func DecodePoint(s string) []int64 {
+	var y int64
+
+	for i := int64(0); i < b - 1; i++ {
+		powI := int64(math.Pow(2, float64(i)))
+		y += powI + Bit(s, i)
+	}
+
+	x := XRecover(y)
+
+	xBitWiseAnd := x & 1
+
+	if xBitWiseAnd != Bit(s, b - 1) {
+		x = Q - x
+	}
+
+	P := []int64{x, y}
+
+	if !IsOnCurve(P) {
+		log.Fatal("Not on curve")
+	}
+
+	return P
+
+}
+
+func CompreArray(a, b []int64) bool {
+	for i := range a {
+		if a[i] != b[i]	{
+			return false
+		}
+	}
+
+	return true
+}
+
+
+func CheckValid(s, m, pk string) bool {
+	if int64(len(s)) != b / 4 {
+		log.Fatal("Signature length wrong")
+	}
+
+	if int64(len(pk)) != b / 8 {
+		log.Fatal("Public Key length wrong")
+	}
+
+	R := DecodePoint(s[0: b / 8])
+	A := DecodePoint(pk)
+	S := DecodeInt(s[b / 8:b/4])
+	h := Hint(EncodePoint(R) + pk + m)
+
+	scMultBS := ScalarMult(B, S)
+	scMultAH := ScalarMult(A, h)
+	edWards := Edwards(R, scMultAH)
+
+	return CompreArray(scMultBS, edWards)
+ }
