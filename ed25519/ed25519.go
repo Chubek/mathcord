@@ -5,21 +5,26 @@ import (
 	"log"
 	"math"
 	"math/big"
-	"strconv"
 	"mathcord/sha512"
+	"mathcord/utils"
+	"strconv"
 )
 
 var (
-	b int64
-	Q int64
-	L *big.Int
+	b  int64
+	L  *big.Int
+	d  *big.Int
+	I  *big.Int
+	BY *big.Int
+	BX *big.Int
+	B  []*big.Int
+	Q *big.Int
 )
-
 
 func init() {
 	fltStr := strconv.FormatFloat(math.Pow(2.0, 252.0), 'f', 0, 64)
 	pow := new(big.Int)
-	flt, _, err  := big.ParseFloat(fltStr, 10, 0, big.ToNearestEven)
+	flt, _, err := big.ParseFloat(fltStr, 10, 0, big.ToNearestEven)
 
 	if err != nil {
 		log.Fatal(err)
@@ -29,114 +34,223 @@ func init() {
 
 	TBA := new(big.Int)
 
-	toBeAdded, _ := TBA.SetString("27742317777372353535851937790883648493", 10)
-	
+	_, success := TBA.SetString("27742317777372353535851937790883648493", 10)
 
-	b 	=	256
-	Q	= 	int64(math.Pow(2.0, 255.0)) - 19
-	L  	=	L.Add(toBeAdded, powTBA)
-}
-
-func ExpMod(b, e, m int64) int64 {
-	if e == 0 {
-		return 1
+	if !success {
+		log.Fatal("Set failed")
 	}
 
-	eDivTwo := e / 2
+	b = 256
+	QS := int64(math.Pow(2.0, 255.0)) - 19
+	L = new(big.Int)
+
+	L.Add(TBA, powTBA)
+
+	Q = big.NewInt(QS)
+
+	d.SetInt64(-1211665)
+	d.Mul(d, Invert(big.NewInt(121666)))
+	
+	QI := new(big.Int)
+
+	QI.Sub(Q, big.NewInt(1))
+	QI.Div(QI, big.NewInt(4))
+	
+	I = ExpMod(big.NewInt(2), QI, Q)
+
+	BY.Mul(big.NewInt(4), Invert(big.NewInt(5)))
+	BX = XRecover(BY)
+
+	BXmodQ := new(big.Int)
+	BYmodQ := new(big.Int)
+
+	BXmodQ.Mod(BX, Q)
+	BYmodQ.Mod(BY, Q)
+
+	B = []*big.Int{BXmodQ, BYmodQ}
+}
+
+func ExpMod(b, e, m *big.Int) *big.Int {
+	oneBigInt  := big.NewInt(1)
+	
+	if e == big.NewInt(0) {
+		return oneBigInt
+	}
+
+	eDivTwo := new(big.Int)
+
+	eDivTwo.Div(e, big.NewInt(2))
+	
 	t := ExpMod(b, eDivTwo, m)
 
-	tPTwo := int64(math.Pow(float64(t), 2))
+	tPTwo := new(big.Int)
 
-	tPTMod := tPTwo % m
+	tPTwo.Exp(t, big.NewInt(2), nil)
 
-	mBitwiseAndOne := m & 1
+	tPTMod := new(big.Int)
 
-	if mBitwiseAndOne != 0 {
-		tPTMod = (t * b) % m
+	tPTMod.Mod(tPTwo, m)
+
+	mBitwiseAndOne := new(big.Int)
+
+	mBitwiseAndOne.And(m, oneBigInt)
+
+	if mBitwiseAndOne != big.NewInt(0) {
+		tPTMod.Mul(t, b)
+		tPTMod.Mod(tPTMod, m)
 	}
 
 	return tPTMod
 
-
-
 }
 
-func Invert(x int64) int64 {
-	return ExpMod(x, Q - 2, Q)
+func Invert(x *big.Int) *big.Int {
+	qMinTwo := new(big.Int)
+
+	qMinTwo.Sub(Q, big.NewInt(2))
+
+	return ExpMod(x, qMinTwo, Q)
 }
 
-var (
-	d = -1211665 * Invert(121666)
-	I = ExpMod(2, (Q - 1) / 4, Q)
-)
+func XRecover(y *big.Int) *big.Int {
+	yMuly := new(big.Int)
 
-func XRecover(y int64) int64 {
-	xX := (y * y - 1) * Invert(d * y * y + 1)
-	x := ExpMod(xX, (Q + 3) / 8, Q)
+	yMuly.Mul(y, y)
 
-	if (x*x - xX) % Q != 0 {
-		x = (x*I) % Q
+	yMuly.Sub(yMuly, big.NewInt(1))
+
+
+	toInv := new(big.Int)
+	added := new(big.Int)
+
+	added.Mul(y, y)
+	added.Add(added, big.NewInt(1))
+
+	toInv.Mul(d, added)
+
+	yMulyy := new(big.Int)
+
+	yMulyy.Mul(y, y)
+	yMulyy.Add(yMuly, big.NewInt(1))
+
+	inverted := Invert(toInv)
+
+	xX := new(big.Int)
+
+	xX.Mul(yMuly, inverted)
+
+	qMod := new(big.Int)
+
+	qMod.Add(Q, big.NewInt(3))
+	qMod.Div(qMod, big.NewInt(8))
+
+	x := ExpMod(xX, qMod, Q)
+
+	toCompare := new(big.Int)
+
+	toCompare.Mul(x, x)
+	toCompare.Sub(toCompare, xX)
+	toCompare.Mod(toCompare, Q)
+
+
+	if toCompare != big.NewInt(0)  {
+		x.Mul(x, I)
+		x.Mod(x, Q)		
 	}
 
-	if x % 2 != 0 {
-		x = Q - x
+	x.Mod(x, big.NewInt(2))
+
+	if x != big.NewInt(0) {
+		x.Sub(Q, x)
 	}
 
 	return x
 
 }
 
-var (
-	BY = 4 * Invert(5)
-	BX = XRecover(BY)
-	B = []int64{BX % Q, BY % Q}
-)
-
-
-func Edwards(p, q []int64) []int64 {
+func Edwards(p, q []*big.Int) []*big.Int {
 	X1 := p[0]
 	Y1 := p[1]
 	X2 := q[0]
 	Y2 := q[1]
 
-	X3 := (X1 * Y2 + X2 + Y1) * Invert(1 + d * X1 * X2 * Y1 * Y2)
-	Y3 := (Y1 * Y2 + X1 + X2) * Invert( - d * X1 *X2 * Y1 * Y2)
+	opOne := new(big.Int)
+	opTwo := new(big.Int)
+	opThree := big.NewInt(1)
+	opFour := d
 
-	return []int64{X3 % Q, Y3 % Q}
+	opOne.Mul(X1, Y1)
+	opOne.Add(X2, Y2)
+
+	opTwo.Mul(Y1, Y2)
+	opTwo.Add(X1, X2)
+	
+	opThree.Add(opThree, d)
+	opThree.Mul(X1, X2)
+	opThree.Mul(Y1, Y2)
+
+	opFour.Neg(opFour)
+	opFour.Mul(X1, X2)
+	opFour.Mul(Y1, Y2)
+
+	opThreeInverted := Invert(opThree)
+	opFourInverted := Invert(opFour)
+
+	opThreeInverted.Mul(opThreeInverted, opOne)
+	opFourInverted.Mul(opFourInverted, opTwo)
+
+	X3 := new(big.Int)
+	Y3 := new(big.Int)
+
+	X3.Mod(opThreeInverted, Q)
+	Y3.Mod(opFourInverted, Q)
+
+	return []*big.Int{X3, Y3}
 }
 
-
-func ScalarMult(p []int64, e int64) []int64 {
-	if e == 0 {
-		return []int64{0, 1}
+func ScalarMult(p []*big.Int, e *big.Int) []*big.Int {
+	bigIntOne := big.NewInt(1)
+	bigIntZero := big.NewInt(0)
+	
+	if e == big.NewInt(0) {
+		return []*big.Int{bigIntZero, bigIntOne}
 	}
 
-	qZ := ScalarMult(p, e / 2)
+	eDivTwo := new(big.Int)
+
+	eDivTwo.Div(e, big.NewInt(2))
+
+	qZ := ScalarMult(p, eDivTwo)
 	qZ = Edwards(qZ, qZ)
 
-	eBitwizeAndOne := e & 1
+	eBitwizeAndOne := new(big.Int)
 
-	if eBitwizeAndOne != 0 {
+	eBitwizeAndOne.And(e, bigIntOne)
+
+	if eBitwizeAndOne != big.NewInt(0) {
 		qZ = Edwards(qZ, p)
 	}
 
 	return qZ
 }
 
-
-func EncodeInt(y int64) string {
-	bits := make([]int64, b)
-
+func EncodeInt(y *big.Int) string {
+	bits := make([]*big.Int, b)
+	bigIntOne := big.NewInt(1)
 	for i := range bits {
-		bits[i] = (y >> i) & 1
+		res := new(big.Int)
+
+		res.Rsh(y, uint(i))
+		res.And(res, bigIntOne)
+
+		bits[i] = res
 	}
 
 	finStr := ""
-	for i := 0; i < int(b / 8); i++ {
-		var toSum int64
-		toSum = 0
+	for i := 0; i < int(b/8); i++ {
+		toSum := big.NewInt(0)
 		for j := 0; j < 8; j++ {
-			toSum += bits[i * 8 + j]
+			toSum.Add(toSum, bits[i*8+j])
 		}
 
 		finStr += fmt.Sprintf("%c", toSum)
@@ -145,26 +259,32 @@ func EncodeInt(y int64) string {
 	return finStr
 }
 
-
-func EncodePoint(P []int64) string {
+func EncodePoint(P []*big.Int) string {
 	x := P[0]
 	y := P[1]
 
-	bits := make([]int64, b)
-
+	bits := make([]*big.Int, b)
+	bigIntOne := big.NewInt(1)
 	for i := range bits {
-		bits[i] = (y >> i) & 1
+		res := new(big.Int)
+
+		res.Rsh(y, uint(i))
+		res.And(res, bigIntOne)
+
+		bits[i] = res
 	}
 
-	bits[len(bits) - 1] = x & 1
+	resX := new(big.Int)
 
+	resX.And(x, big.NewInt(1))
+
+	bits[len(bits)-1] = resX
 
 	finStr := ""
-	for i := 0; i < int(b / 8); i++ {
-		var toSum int64
-		toSum = 0
+	for i := 0; i < int(b/8); i++ {
+		toSum := big.NewInt(0)
 		for j := 0; j < 8; j++ {
-			toSum += bits[i * 8 + j]
+			toSum.Add(toSum, bits[i*8+j])
 		}
 
 		finStr += fmt.Sprintf("%c", toSum)
@@ -174,9 +294,8 @@ func EncodePoint(P []int64) string {
 
 }
 
-
 func Bit(h string, i int64) int64 {
-	val := h[i / 8]
+	val := h[i/8]
 	ordStr := fmt.Sprintf("%d", val)
 	ordInt, err := strconv.ParseInt(ordStr, 10, 64)
 
@@ -191,16 +310,17 @@ func Bit(h string, i int64) int64 {
 	return ordBitwiseAnd
 }
 
-func Hint(m string) int64 {
+func Hint(m string) *big.Int {
 	h := sha512.HashWithSha512(m)
 
-	var sum int64 
-	sum = 0
+	sum := big.NewInt(0)
 
-	for i := int64(0); i < 2 * b; i++ {
-		powTwoI := int64(math.Pow(float64(i), 2))
-		hI := Bit(h, i)
-		sum += powTwoI + hI
+	for i := int64(0); i < 2*b; i++ {
+		powTwoI := new(big.Int)
+		powTwoI.Exp(big.NewInt(2), big.NewInt(i), nil)
+		bitHI := Bit(h, i)
+
+		sum.Add(powTwoI, big.NewInt(bitHI))
 	}
 
 	return sum
@@ -208,21 +328,27 @@ func Hint(m string) int64 {
 
 func PublicKey(sk string) string {
 	h := sha512.HashWithSha512(sk)
-	
-	a1 := b - 2
-	a2 := int64(math.Pow(2, float64(a1)))
-	
-	var sumA int64
-	sumA = 0
-	
-	for i := int64(3); i < b - 2; i++ {
-		powTwoI := int64(math.Pow(2, float64(i)))
+
+	a1 := new(big.Int)
+	a1.Sub(big.NewInt(b), big.NewInt(2))
+
+	a2 := new(big.Int)
+
+	a2.Exp(big.NewInt(2), a1, nil)
+
+	sumA := big.NewInt(0)
+
+	for i := int64(3); i < b-2; i++ {
+		powTwoI := new(big.Int)
+		powTwoI.Exp(big.NewInt(2), big.NewInt(i), nil)
 		bitHI := Bit(h, i)
 
-		sumA += powTwoI * bitHI
+		sumA.Add(powTwoI, big.NewInt(bitHI))
 	}
 
-	a := a2 + sumA
+	a := new(big.Int)
+
+	a.Add(sumA, a2)
 
 	A := ScalarMult(B, a)
 
@@ -231,25 +357,32 @@ func PublicKey(sk string) string {
 
 func Signature(m, sk, pk string) *big.Int {
 	h := sha512.HashWithSha512(sk)
-	
-	a1 := b - 2
-	a2 := int64(math.Pow(2, float64(a1)))
-	
-	var sumA int64
-	sumA = 0
-	
-	for i := int64(3); i < b - 2; i++ {
-		powTwoI := int64(math.Pow(2, float64(i)))
+
+	a1 := new(big.Int)
+	a1.Sub(big.NewInt(b), big.NewInt(2))
+
+	a2 := new(big.Int)
+
+	a2.Exp(big.NewInt(2), a1, nil)
+
+	sumA := big.NewInt(0)
+
+	for i := int64(3); i < b-2; i++ {
+		powTwoI := new(big.Int)
+		powTwoI.Exp(big.NewInt(2), big.NewInt(i), nil)
 		bitHI := Bit(h, i)
 
-		sumA += powTwoI * bitHI
+		sumA.Add(powTwoI, big.NewInt(bitHI))
 	}
 
-	a := a2 + sumA
+	a := new(big.Int)
+
+	a.Add(sumA, a2)
+
 
 	hashSub := ""
 
-	for i := b / 8; i < b /4; i++ {
+	for i := b / 8; i < b/4; i++ {
 		hashSub += string(h[i])
 	}
 
@@ -257,9 +390,12 @@ func Signature(m, sk, pk string) *big.Int {
 
 	R := ScalarMult(B, r)
 
-	hintR := Hint(EncodePoint(R) + pk + m) * a
+	hintR := Hint(EncodePoint(R)+pk+m) 
 
-	hintR += r
+	hintRBig := new(big.Int)
+	hintRBig.Mul(hintR, a)
+
+	hintRBig.Add(hintRBig, r)
 
 	bigIntR := new(big.Int)
 
@@ -273,43 +409,82 @@ func Signature(m, sk, pk string) *big.Int {
 
 }
 
-
-func IsOnCurve(P []int64) bool {
+func IsOnCurve(P []*big.Int) bool {
 	x := P[0]
 	y := P[1]
 
-	return (-x*x + y*y - 1 - d*x*x*y*y) %Q == 0
+	res := new(big.Int)
+
+	res.Neg(x)
+	res.Mul(res, x)
+
+	mult := new(big.Int)
+
+	mult.Mul(y, y)
+
+	res.Add(res, mult)
+
+	res.Sub(res, big.NewInt(-1))
+
+	multNew := new(big.Int)
+
+	multNew.Mul(d, x)
+	multNew.Mul(multNew, x)
+	multNew.Mul(multNew, y)
+	multNew.Mul(multNew, y)
+
+	multNew.Neg(multNew)
+
+	res.Add(res, multNew)
+
+	mod := new(big.Int)
+
+	mod.Mod(res, Q)
+
+	return mod == big.NewInt(0)
 }
 
-func DecodeInt(s string) int64 {
-	var sum int64
-
+func DecodeInt(s string) *big.Int {
+	sum := big.NewInt(0)
+	twoBig := big.NewInt(2)
 	for i := int64(0); i < b; i++ {
-		powI := int64(math.Pow(2, float64(i)))
-		sum += powI + Bit(s, i)
+		iBig := big.NewInt(i)
+		
+		powI := new(big.Int)
+
+		powI.Exp(twoBig, iBig, nil)
+
+		sum.Add(powI, big.NewInt(Bit(s, i)))
 	}
+
 
 	return sum
 }
 
-
-func DecodePoint(s string) []int64 {
-	var y int64
-
-	for i := int64(0); i < b - 1; i++ {
-		powI := int64(math.Pow(2, float64(i)))
-		y += powI + Bit(s, i)
+func DecodePoint(s string) []*big.Int {
+	y := new(big.Int)
+	twoBig := big.NewInt(2)
+	for i := int64(0); i < b-1; i++ {
+		powI := new(big.Int)
+		iBig := big.NewInt(i)
+		
+		powI.Exp(twoBig, iBig, nil)
+		bitI := big.NewInt(Bit(s, i))
+		y.Mul(bitI, powI)
 	}
+
 
 	x := XRecover(y)
 
-	xBitWiseAnd := x & 1
+	xBitWiseAnd := new(big.Int)
 
-	if xBitWiseAnd != Bit(s, b - 1) {
-		x = Q - x
+	xBitWiseAnd.And(x, big.NewInt(1))
+
+	if xBitWiseAnd != big.NewInt(Bit(s, b-1)) {
+		x.Sub(Q, x)
 	}
 
-	P := []int64{x, y}
+	P := []*big.Int{x, y}
 
 	if !IsOnCurve(P) {
 		log.Fatal("Not on curve")
@@ -319,9 +494,10 @@ func DecodePoint(s string) []int64 {
 
 }
 
-func CompreArray(a, b []int64) bool {
+func CompreArray(a, b []*big.Int) bool {
 	for i := range a {
-		if a[i] != b[i]	{
+		if a[i] != b[i] {
+			fmt.Print(a[i], " was unequal to ", b[i], "\n")
 			return false
 		}
 	}
@@ -329,19 +505,21 @@ func CompreArray(a, b []int64) bool {
 	return true
 }
 
+func CheckValid(sEnc, m, pkEnc string) bool {
+	s := utils.DecodeBase64(sEnc)
+	pk := utils.DecodeBase64(pkEnc)
 
-func CheckValid(s, m, pk string) bool {
-	if int64(len(s)) != b / 4 {
+	if int64(len(s)) != b/4 {
 		log.Fatal("Signature length wrong")
 	}
 
-	if int64(len(pk)) != b / 8 {
+	if int64(len(pk)) != b/8 {
 		log.Fatal("Public Key length wrong")
 	}
 
-	R := DecodePoint(s[0: b / 8])
+	R := DecodePoint(s[0 : b/8])
 	A := DecodePoint(pk)
-	S := DecodeInt(s[b / 8:b/4])
+	S := DecodeInt(s[b/8 : b/4])
 	h := Hint(EncodePoint(R) + pk + m)
 
 	scMultBS := ScalarMult(B, S)
@@ -349,4 +527,4 @@ func CheckValid(s, m, pk string) bool {
 	edWards := Edwards(R, scMultAH)
 
 	return CompreArray(scMultBS, edWards)
- }
+}

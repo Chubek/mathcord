@@ -3,9 +3,20 @@ package utils
 import (
 	"fmt"
 	"log"
+	b64 "encoding/base64"
 	"strconv"
 	"strings"
 )
+
+func DecodeBase64(sEnc string) string {
+	sDec, err := b64.StdEncoding.DecodeString(sEnc)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return string(sDec)
+}
 
 func Index(vs []string, t string) int {
 	for i, v := range vs {
