@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"mathcord/sha512"
 	"mathcord/utils"
+	"os"
 	"strconv"
 )
 
@@ -17,11 +18,14 @@ var (
 	I  *big.Int
 	BY *big.Int
 	BX *big.Int
+	f  *os.File
 	B  []*big.Int
-	Q *big.Int
+	Q  *big.Int
 )
 
 func init() {
+	f, _ = os.OpenFile("ff.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+
 	fltStr := strconv.FormatFloat(math.Pow(2.0, 252.0), 'f', 0, 64)
 	pow := new(big.Int)
 	flt, _, err := big.ParseFloat(fltStr, 10, 0, big.ToNearestEven)
@@ -41,25 +45,41 @@ func init() {
 	}
 
 	b = 256
-	QS := int64(math.Pow(2.0, 255.0)) - 19
 	L = new(big.Int)
 
 	L.Add(TBA, powTBA)
 
-	Q = big.NewInt(QS)
+	bigTwo := big.NewInt(2)
+	bigTwoFiveFive := big.NewInt(255)
+	bigNineteen := big.NewInt(19)
 
-	d.SetInt64(-1211665)
-	d.Mul(d, Invert(big.NewInt(121666)))
-	
+	bigTwo.Exp(bigTwo, bigTwoFiveFive, nil)
+	bigTwo.Sub(bigTwo, bigNineteen)
+
+	Q = bigTwo
+
+	d = big.NewInt(-121665)
+	dd := big.NewInt(121666)
+
+	inv := Invert(dd, "init")
+
+
+
+	d.Mul(d, inv)
+
+
+
 	QI := new(big.Int)
 
 	QI.Sub(Q, big.NewInt(1))
 	QI.Div(QI, big.NewInt(4))
-	
-	I = ExpMod(big.NewInt(2), QI, Q)
 
-	BY.Mul(big.NewInt(4), Invert(big.NewInt(5)))
-	BX = XRecover(BY)
+	I = ExpMod(big.NewInt(2), QI, Q, "init")
+
+	BY = new(big.Int)
+
+	BY.Mul(big.NewInt(4), Invert(big.NewInt(5), "init"))
+	BX = XRecover(BY, "init")
 
 	BXmodQ := new(big.Int)
 	BYmodQ := new(big.Int)
@@ -70,81 +90,81 @@ func init() {
 	B = []*big.Int{BXmodQ, BYmodQ}
 }
 
-func ExpMod(b, e, m *big.Int) *big.Int {
-	oneBigInt  := big.NewInt(1)
-	
-	if e == big.NewInt(0) {
+func ExpMod(b, e, m *big.Int, stack string) *big.Int {
+	oneBigInt := big.NewInt(1)
+	bigZero := big.NewInt(0)
+
+	if e.Cmp(bigZero) == 0 {
+
 		return oneBigInt
 	}
 
 	eDivTwo := new(big.Int)
 
 	eDivTwo.Div(e, big.NewInt(2))
-	
-	t := ExpMod(b, eDivTwo, m)
 
-	tPTwo := new(big.Int)
+	t := ExpMod(b, eDivTwo, m, "self"+stack)
+	t.Exp(t, big.NewInt(2), nil)
+	t.Mod(t, m)
 
-	tPTwo.Exp(t, big.NewInt(2), nil)
 
-	tPTMod := new(big.Int)
 
-	tPTMod.Mod(tPTwo, m)
 
-	mBitwiseAndOne := new(big.Int)
+	eBitwiseAndOne := new(big.Int)
 
-	mBitwiseAndOne.And(m, oneBigInt)
+	eBitwiseAndOne.And(e, oneBigInt)
 
-	if mBitwiseAndOne != big.NewInt(0) {
-		tPTMod.Mul(t, b)
-		tPTMod.Mod(tPTMod, m)
+	if eBitwiseAndOne.Cmp(bigZero) == 1 {
+		t.Mul(t, b)
+		t.Mod(t, m)
 	}
 
-	return tPTMod
+	return t
 
 }
 
-func Invert(x *big.Int) *big.Int {
+func Invert(x *big.Int, stack string) *big.Int {
 	qMinTwo := new(big.Int)
 
 	qMinTwo.Sub(Q, big.NewInt(2))
 
-	return ExpMod(x, qMinTwo, Q)
+	res := ExpMod(x, qMinTwo, Q, "inv"+stack)
+
+	return res
 }
 
-func XRecover(y *big.Int) *big.Int {
-	yMuly := new(big.Int)
+func XRecover(y *big.Int, stack string) *big.Int {
+	bigOne := big.NewInt(1)
 
-	yMuly.Mul(y, y)
+	opOne := new(big.Int)
 
-	yMuly.Sub(yMuly, big.NewInt(1))
+	opOne.Mul(y, y)
+
+	opOne.Sub(opOne, bigOne)
+
+	opTwo := new(big.Int)
+	opTwo.Mul(y, y)
+
+	opTwo.Mul(opTwo, d)
+
+	opTwo.Add(opTwo, bigOne)
+
+	invT := Invert(opTwo, "xrecover")
 
 
-	toInv := new(big.Int)
-	added := new(big.Int)
-
-	added.Mul(y, y)
-	added.Add(added, big.NewInt(1))
-
-	toInv.Mul(d, added)
-
-	yMulyy := new(big.Int)
-
-	yMulyy.Mul(y, y)
-	yMulyy.Add(yMuly, big.NewInt(1))
-
-	inverted := Invert(toInv)
 
 	xX := new(big.Int)
 
-	xX.Mul(yMuly, inverted)
+	xX.Mul(opOne, invT)
 
 	qMod := new(big.Int)
 
 	qMod.Add(Q, big.NewInt(3))
 	qMod.Div(qMod, big.NewInt(8))
 
-	x := ExpMod(xX, qMod, Q)
+	x := ExpMod(xX, qMod, Q, "xrecover")
+
+
 
 	toCompare := new(big.Int)
 
@@ -152,16 +172,34 @@ func XRecover(y *big.Int) *big.Int {
 	toCompare.Sub(toCompare, xX)
 	toCompare.Mod(toCompare, Q)
 
+	bigZero := big.NewInt(0)
 
-	if toCompare != big.NewInt(0)  {
-		x.Mul(x, I)
-		x.Mod(x, Q)		
+	if toCompare.Cmp(bigZero) == 1 {
+		xI := new(big.Int)
+
+		xI.Mul(x, I)
+		xI.Mod(xI, Q)
+
+		x = xI
+
+
+
 	}
 
-	x.Mod(x, big.NewInt(2))
+	xMod := new(big.Int)
 
-	if x != big.NewInt(0) {
-		x.Sub(Q, x)
+	xMod.Mod(x, big.NewInt(2))
+
+	if xMod.Cmp(bigZero) == 1 {
+		qSubX := new(big.Int)
+
+
+
+		qSubX.Sub(Q, x)
+
+		x = qSubX
+		
+
 	}
 
 	return x
@@ -184,7 +222,7 @@ func Edwards(p, q []*big.Int) []*big.Int {
 
 	opTwo.Mul(Y1, Y2)
 	opTwo.Add(X1, X2)
-	
+
 	opThree.Add(opThree, d)
 	opThree.Mul(X1, X2)
 	opThree.Mul(Y1, Y2)
@@ -193,8 +231,8 @@ func Edwards(p, q []*big.Int) []*big.Int {
 	opFour.Mul(X1, X2)
 	opFour.Mul(Y1, Y2)
 
-	opThreeInverted := Invert(opThree)
-	opFourInverted := Invert(opFour)
+	opThreeInverted := Invert(opThree, "ed")
+	opFourInverted := Invert(opFour, "ed")
 
 	opThreeInverted.Mul(opThreeInverted, opOne)
 	opFourInverted.Mul(opFourInverted, opTwo)
@@ -211,8 +249,8 @@ func Edwards(p, q []*big.Int) []*big.Int {
 func ScalarMult(p []*big.Int, e *big.Int) []*big.Int {
 	bigIntOne := big.NewInt(1)
 	bigIntZero := big.NewInt(0)
-	
-	if e == big.NewInt(0) {
+
+	if e.Cmp(bigIntZero) == 0 {
 		return []*big.Int{bigIntZero, bigIntOne}
 	}
 
@@ -227,7 +265,7 @@ func ScalarMult(p []*big.Int, e *big.Int) []*big.Int {
 
 	eBitwizeAndOne.And(e, bigIntOne)
 
-	if eBitwizeAndOne != big.NewInt(0) {
+	if eBitwizeAndOne.Cmp(bigIntZero) == 1 {
 		qZ = Edwards(qZ, p)
 	}
 
@@ -379,7 +417,6 @@ func Signature(m, sk, pk string) *big.Int {
 
 	a.Add(sumA, a2)
 
-
 	hashSub := ""
 
 	for i := b / 8; i < b/4; i++ {
@@ -390,7 +427,7 @@ func Signature(m, sk, pk string) *big.Int {
 
 	R := ScalarMult(B, r)
 
-	hintR := Hint(EncodePoint(R)+pk+m) 
+	hintR := Hint(EncodePoint(R) + pk + m)
 
 	hintRBig := new(big.Int)
 	hintRBig.Mul(hintR, a)
@@ -413,35 +450,36 @@ func IsOnCurve(P []*big.Int) bool {
 	x := P[0]
 	y := P[1]
 
-	res := new(big.Int)
+	xMulx := new(big.Int)
+	yMuly := new(big.Int)
 
-	res.Neg(x)
-	res.Mul(res, x)
+	xMulx.Mul(x, x)
+	yMuly.Mul(y, y)
 
-	mult := new(big.Int)
+	xMulx.Neg(xMulx)
 
-	mult.Mul(y, y)
+	xMulx.Add(xMulx, yMuly)
 
-	res.Add(res, mult)
+	
+	xMulx_ := new(big.Int)
+	yMuly_ := new(big.Int)
+	xMulx_.Mul(x, x)
+	yMuly_.Mul(y, y)
 
-	res.Sub(res, big.NewInt(-1))
+	xMulx_.Mul(yMuly_, xMulx_)
+	xMulx_.Mul(d, xMulx_)
 
-	multNew := new(big.Int)
+	xMulx_.Add(xMulx_, big.NewInt(1))
 
-	multNew.Mul(d, x)
-	multNew.Mul(multNew, x)
-	multNew.Mul(multNew, y)
-	multNew.Mul(multNew, y)
+	xMulx_.Neg(xMulx_)
 
-	multNew.Neg(multNew)
+	xMulx.Add(xMulx, xMulx_)
 
-	res.Add(res, multNew)
+	xMulx.Mod(xMulx, Q)
 
-	mod := new(big.Int)
 
-	mod.Mod(res, Q)
 
-	return mod == big.NewInt(0)
+	return xMulx.Cmp(big.NewInt(0)) == 0
 }
 
 func DecodeInt(s string) *big.Int {
@@ -449,14 +487,13 @@ func DecodeInt(s string) *big.Int {
 	twoBig := big.NewInt(2)
 	for i := int64(0); i < b; i++ {
 		iBig := big.NewInt(i)
-		
+
 		powI := new(big.Int)
 
 		powI.Exp(twoBig, iBig, nil)
 
 		sum.Add(powI, big.NewInt(Bit(s, i)))
 	}
-
 
 	return sum
 }
@@ -467,14 +504,19 @@ func DecodePoint(s string) []*big.Int {
 	for i := int64(0); i < b-1; i++ {
 		powI := new(big.Int)
 		iBig := big.NewInt(i)
-		
+
 		powI.Exp(twoBig, iBig, nil)
 		bitI := big.NewInt(Bit(s, i))
-		y.Mul(bitI, powI)
+
+		mul := new(big.Int)
+
+		mul.Mul(bitI, powI)
+
+		y.Add(y, mul)
 	}
 
 
-	x := XRecover(y)
+	x := XRecover(y, "notinit")
 
 	xBitWiseAnd := new(big.Int)
 
@@ -496,7 +538,7 @@ func DecodePoint(s string) []*big.Int {
 
 func CompreArray(a, b []*big.Int) bool {
 	for i := range a {
-		if a[i] != b[i] {
+		if a[i].Cmp(b[i]) == 1 {
 			fmt.Print(a[i], " was unequal to ", b[i], "\n")
 			return false
 		}
