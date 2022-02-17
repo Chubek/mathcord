@@ -203,12 +203,12 @@ func (message *Sha512Message) InitAndAppendBits() {
 
 	var toBeAdded int
 
-	if 1024 - val >= 128 {
+	if 1024-val >= 128 {
 		toBeAdded = 1024 - val
-	} else if 1024 - val < 128 {
+	} else if 1024-val < 128 {
 		toBeAdded = 2048 - val
 	}
-	message.Message += strings.Repeat("0", toBeAdded - 128)
+	message.Message += strings.Repeat("0", toBeAdded-128)
 	integerToBeAdded := utils.IntegerToBinary(lengthOriginal, 128)
 	message.Message += integerToBeAdded
 	lenMessageDiv := len(message.Message)
@@ -337,7 +337,7 @@ func (buff *Sha512Buffer) ToHexaDecimal() string {
 	D := utils.DecimalToHex(buff.D)
 	E := utils.DecimalToHex(buff.E)
 	F := utils.DecimalToHex(buff.F)
-	G := utils.DecimalToHex(buff.E)
+	G := utils.DecimalToHex(buff.G)
 	H := utils.DecimalToHex(buff.H)
 
 	return A + B + C + D + E + F + G + H

@@ -6,7 +6,20 @@ import (
 	b64 "encoding/base64"
 	"strconv"
 	"strings"
+	"encoding/ascii85"
 )
+
+func ToAscii(bytes []byte) string {
+	dst := make([]byte, 64, 64)
+
+	fmt.Print(len(bytes), "   ", len(dst), "|==\n")
+
+	ascii85.Encode(dst, bytes)
+	
+	fmt.Print(string(dst))
+
+	return string(dst)
+}
 
 func DecodeBase64(sEnc string) string {
 	sDec, err := b64.StdEncoding.DecodeString(sEnc)
