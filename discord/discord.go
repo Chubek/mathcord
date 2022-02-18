@@ -12,18 +12,18 @@ import (
 )
 
 type Interaction struct {
-	ID          string       `json:"id"`
-	Type        int          `json:"type"`
-	Data        *interface{} `json:"data"`
-	GuildID     string       `json:"guild_id"`
-	ChannelID   string       `json:"channel_id"`
-	Message     interface{}  `json:"message"`
-	Member      *interface{} `json:"member"`
-	User        interface{}  `json:"user"`
-	Locale      *string      `json:"locale"`
-	GuildLocale string       `json:"guild_locale"`
-	Token       string       `json:"token"`
-	Version     int          `json:"version"`
+	ID          string      `json:"id"`
+	Type        int         `json:"type"`
+	Data        interface{} `json:"data"`
+	GuildID     string      `json:"guild_id"`
+	ChannelID   string      `json:"channel_id"`
+	Message     interface{} `json:"message"`
+	Member      interface{} `json:"member"`
+	User        interface{} `json:"user"`
+	Locale      *string     `json:"locale"`
+	GuildLocale string      `json:"guild_locale"`
+	Token       string      `json:"token"`
+	Version     int         `json:"version"`
 }
 
 var PK string
