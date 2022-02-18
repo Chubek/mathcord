@@ -6,10 +6,23 @@ import (
 	"io/ioutil"
 	"log"
 	"mathcord/ed25519"
+	"mathcord/parser"
 	"mathcord/utils"
 	"net/http"
 	"os"
 )
+
+type Options struct {
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+type Data struct {
+	ID      int     `json:"id"`
+	Name    string  `json:"string"`
+	Options Options `json:"options"`
+}
 
 type Interaction struct {
 	ID          string      `json:"id"`
@@ -93,6 +106,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+
+	if interaction.Data != nil {
+		data := interaction.Data.(Data)
+
+		result := parser.ShuntingYard(data.Options.Value)
+		log.Println("Result is ", result)
+		_, err = w.Write(json.RawMessage(`{"type": 4, "data": "Result: ` + result + `""}`))
+
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 	log.Println("---------------------------")
 
 }
