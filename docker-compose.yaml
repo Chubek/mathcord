@@ -1,0 +1,34 @@
+services:
+  mathcord:
+    container_name: mathcord
+    build: .
+    ports:
+      - "8050:8050"
+    env_file:
+      - .env
+    networks:
+      - mathcord
+    volumes:
+      - ~/logs/mathcord.log:/usr/src/app/mathcord.log
+    hostname:
+      - mathcordapi
+
+
+
+  caddy:
+    container_name: caddyc
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    networks:
+      - mathcord
+
+
+
+networks:
+  mathcord:
+    external: true

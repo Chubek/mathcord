@@ -15,7 +15,7 @@ func HexToAscii(hexStr string) []byte {
 	_, err := hex.Decode(dst, []byte(hexStr))
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	return dst
@@ -41,7 +41,7 @@ func DecodeBase64(sEnc string) string {
 	sDec, err := b64.StdEncoding.DecodeString(sEnc)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	return string(sDec)
@@ -99,7 +99,7 @@ func Map(vs []string, f func(string) string) []string {
 func ParseToFloat(num string) float64 {
 	numParsed, err := strconv.ParseFloat(strings.Trim(num, ""), 32)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	return numParsed
@@ -141,7 +141,7 @@ func StrToBinary(s string) string {
 func BinaryToDecimal(bin string) uint64 {
 	num, err := strconv.ParseUint(bin, 2, 64)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	return uint64(num)
 }
@@ -149,7 +149,7 @@ func BinaryToDecimal(bin string) uint64 {
 func BinaryToDecimal32(bin string) uint32 {
 	num, err := strconv.ParseUint(bin, 2, 32)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	return uint32(num)
 }
@@ -267,4 +267,14 @@ func BytesToBinary(bytes []byte) string {
 	}
 
 	return res
+}
+
+func HexToByte(hexStr string) []byte {
+	decoded, err := hex.DecodeString(hexStr)
+
+	if err != nil {
+		log.Print(err)
+	}
+
+	return decoded
 }

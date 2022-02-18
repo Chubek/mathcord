@@ -28,7 +28,7 @@ func init() {
 	flt, _, err := big.ParseFloat(fltStr, 10, 0, big.ToNearestEven)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	powTBA, _ := flt.Int(pow)
@@ -38,7 +38,7 @@ func init() {
 	_, success := TBA.SetString("27742317777372353535851937790883648493", 10)
 
 	if !success {
-		log.Fatal("Set failed")
+		log.Print("Set failed")
 	}
 
 	b = 256
@@ -505,7 +505,7 @@ func DecodePoint(s []byte) []*big.Int {
 	P := []*big.Int{x, y}
 
 	if !IsOnCurve(P) {
-		log.Fatal("Not on curve")
+		log.Print("Not on curve")
 	}
 
 	return P
@@ -525,17 +525,50 @@ func CompreArray(a, b []*big.Int) bool {
 	return true
 }
 
-func CheckValid(sEnc, mStr, pkEnc string) bool {
+func CheckValid(mStr, sEnc, pkEnc string) bool {
 	s := []byte(utils.DecodeBase64(sEnc))
 	pk := []byte(utils.DecodeBase64(pkEnc))
 	m := []byte(mStr)
 
 	if int64(len(s)) != b/4 {
-		log.Fatal("Signature length wrong")
+		log.Print("Signature length wrong")
 	}
 
 	if int64(len(pk)) != b/8 {
-		log.Fatal("Public Key length wrong")
+		log.Print("Public Key length wrong")
+	}
+
+	R := DecodePoint(s[0 : b/8])
+
+	A := DecodePoint(pk)
+
+	S := DecodeInt(s[b/8 : b/4])
+
+	encR := EncodePoint(R)
+
+	var hRR []byte
+
+	hRR = append(hRR, encR...)
+	hRR = append(hRR, pk...)
+	hRR = append(hRR, m...)
+
+	h := Hint(hRR)
+
+	scMultBS := ScalarMult(B, S)
+	scMultAH := ScalarMult(A, h)
+	edWards := Edwards(R, scMultAH)
+
+	return CompreArray(scMultBS, edWards)
+}
+
+func CheckValidBytes(m, s, pk []byte) bool {
+
+	if int64(len(s)) != b/4 {
+		log.Print("Signature length wrong")
+	}
+
+	if int64(len(pk)) != b/8 {
+		log.Print("Public Key length wrong")
 	}
 
 	R := DecodePoint(s[0 : b/8])
