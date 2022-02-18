@@ -1,6 +1,6 @@
 services:
   mathcord:
-    container_name: mathcord
+    container_name: mathcordc
     build: .
     ports:
       - "8050:8050"
