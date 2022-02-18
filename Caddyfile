@@ -9,3 +9,15 @@ https://mathcord.chubakbidpaa.com {
     }
 
 }
+
+https://mathcord.willsh3b33.xyz {
+  reverse_proxy  mathcordapi:8050 {
+          header_up Host {upstream_hostport}
+          header_up X-Forwarded-Host {host}
+          header_down Cache-Control "max-age=3600"
+          header_down Access-Control-Allow-Origin "*"
+          header_down Access-Control-Allow-Methods "*"
+          header_down Access-Control-Allow-Headers "access-control-allow-origin"
+    }
+
+}
