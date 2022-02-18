@@ -28,7 +28,7 @@ func init() {
 	flt, _, err := big.ParseFloat(fltStr, 10, 0, big.ToNearestEven)
 
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
 
 	powTBA, _ := flt.Int(pow)
@@ -38,7 +38,7 @@ func init() {
 	_, success := TBA.SetString("27742317777372353535851937790883648493", 10)
 
 	if !success {
-		log.Print("Set failed")
+		log.Println("Set failed")
 	}
 
 	b = 256
@@ -505,7 +505,7 @@ func DecodePoint(s []byte) []*big.Int {
 	P := []*big.Int{x, y}
 
 	if !IsOnCurve(P) {
-		log.Print("Not on curve")
+		log.Println("Not on curve")
 	}
 
 	return P
@@ -531,11 +531,11 @@ func CheckValid(mStr, sEnc, pkEnc string) bool {
 	m := []byte(mStr)
 
 	if int64(len(s)) != b/4 {
-		log.Print("Signature length wrong")
+		log.Println("Signature length wrong")
 	}
 
 	if int64(len(pk)) != b/8 {
-		log.Print("Public Key length wrong")
+		log.Println("Public Key length wrong")
 	}
 
 	R := DecodePoint(s[0 : b/8])
@@ -564,11 +564,11 @@ func CheckValid(mStr, sEnc, pkEnc string) bool {
 func CheckValidBytes(m, s, pk []byte) bool {
 
 	if int64(len(s)) != b/4 {
-		log.Print("Signature length wrong")
+		log.Println("Signature length wrong")
 	}
 
 	if int64(len(pk)) != b/8 {
-		log.Print("Public Key length wrong")
+		log.Println("Public Key length wrong")
 	}
 
 	R := DecodePoint(s[0 : b/8])

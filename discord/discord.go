@@ -2,7 +2,6 @@ package discord
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
@@ -33,33 +32,33 @@ func init() {
 	err := godotenv.Load()
 
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
 
 	PK = os.Getenv("APP_PK")
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	log.Print(r)
+	log.Println(r)
 
 	w.Header().Add("content-type", "application/json")
 
 	var interaction Interaction
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
 	err = json.Unmarshal(body, &interaction)
 
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
 
 	if interaction.Type == 1 {
 		_, err = w.Write(json.RawMessage(`{"type": 1}`))
 
 		if err != nil {
-			log.Print(err)
+			log.Println(err)
 		}
 
 	}
@@ -77,14 +76,22 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	verified := ed25519.CheckValidBytes(m, utils.HexToByte(signature), utils.HexToByte(PK))
 
 	if !verified {
-		w.WriteHeader(401)
+		log.Println("Failed to verify")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, err := w.Write([]byte("invalid request signature"))
+
+		if err != nil {
+			log.Println(err)
+		}
+
 	}
 
-	fmt.Println(interaction)
+	log.Println("Intersection is: \n", interaction)
+	log.Println("---------------------------")
 
 }
 
 func RunServer() {
 	http.HandleFunc("/", handler)
-	log.Print(http.ListenAndServe(":8050", nil))
+	log.Println(http.ListenAndServe(":8050", nil))
 }
