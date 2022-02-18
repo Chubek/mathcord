@@ -10,8 +10,7 @@ services:
       - mathcord
     volumes:
       - ~/logs/mathcord.log:/usr/src/app/mathcord.log
-    hostname:
-      - "mathcordapi"
+    hostname: mathcordapi
 
 
 
