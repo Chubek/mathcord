@@ -41,30 +41,13 @@ func init() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	log.Println(r)
 
-	w.Header().Add("content-type", "application/json")
-
-	var interaction Interaction
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println(err)
-	}
-	err = json.Unmarshal(body, &interaction)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	if interaction.Type == 1 {
-		_, err = w.Write(json.RawMessage(`{"type": 1}`))
-
-		if err != nil {
-			log.Println(err)
-		}
-
-	}
-
 	signature := r.Header.Get("X-Signature-Ed25519")
 	timestamp := r.Header.Get("X-Signature-Timestamp")
+	body, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		log.Println(err)
+	}
 
 	tsBytes := []byte(timestamp)
 
@@ -84,9 +67,32 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 
+	} else {
+		w.WriteHeader(http.StatusOK)
+
+		log.Println("Status set to OK")
+
+	}
+	w.Header().Set("content-type", "application/json")
+
+	var interaction Interaction
+
+	err = json.Unmarshal(body, &interaction)
+
+	if err != nil {
+		log.Println(err)
 	}
 
 	log.Println("Intersection is: \n", interaction)
+
+	if interaction.Type == 1 {
+		_, err = w.Write(json.RawMessage(`{"type": 1}`))
+
+		if err != nil {
+			log.Println(err)
+		}
+
+	}
 	log.Println("---------------------------")
 
 }
