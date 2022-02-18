@@ -1,24 +1,40 @@
 package utils
 
 import (
+	b64 "encoding/base64"
+	hex "encoding/hex"
 	"fmt"
 	"log"
-	b64 "encoding/base64"
 	"strconv"
 	"strings"
-	"encoding/ascii85"
 )
 
+func HexToAscii(hexStr string) []byte {
+	dst := make([]byte, 64)
+
+	_, err := hex.Decode(dst, []byte(hexStr))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return dst
+}
+
 func ToAscii(bytes []byte) string {
-	dst := make([]byte, 64, 64)
+	ret := ""
 
-	fmt.Print(len(bytes), "   ", len(dst), "|==\n")
+	for _, b := range bytes {
+		uB := uint(b)
 
-	ascii85.Encode(dst, bytes)
-	
-	fmt.Print(string(dst))
+		if uB >= 0 && uB < 128 {
+			ret += string(rune(b))
+		} else {
+			ret += fmt.Sprintf("\\x%s", ByteToHex(b))
+		}
+	}
 
-	return string(dst)
+	return ret
 }
 
 func DecodeBase64(sEnc string) string {
@@ -241,4 +257,14 @@ func ConvertBinaryToIntegerArray(arr []string) []uint64 {
 	}
 
 	return ret
+}
+
+func BytesToBinary(bytes []byte) string {
+	res := ""
+
+	for _, b := range bytes {
+		res = fmt.Sprintf("%s%.8b", res, b)
+	}
+
+	return res
 }

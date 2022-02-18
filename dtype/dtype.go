@@ -187,14 +187,14 @@ func PadWithWords(g int, chunk *[]uint64) {
 }
 
 type Sha512Message struct {
-	Original  string
+	Original  []byte
 	Message   string
 	Chunks    *Chunk
 	NumChunks int
 }
 
 func (message *Sha512Message) InitAndAppendBits() {
-	message.Message = utils.StrToBinary(message.Original)
+	message.Message = utils.BytesToBinary(message.Original)
 	lengthOriginal := uint64(len(message.Message))
 
 	message.Message += "1"
@@ -219,8 +219,8 @@ func (message *Sha512Message) GetLength() int {
 	return len(message.Message)
 }
 
-func NewMessage(str string) *Sha512Message {
-	message := &Sha512Message{Original: str}
+func NewMessage(data []byte) *Sha512Message {
+	message := &Sha512Message{Original: data}
 	message.InitAndAppendBits()
 	message.Chunks = InitChunk(message.Message, message.NumChunks)
 

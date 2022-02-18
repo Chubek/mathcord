@@ -104,7 +104,7 @@ func ExpMod(b, e, m *big.Int) *big.Int {
 
 	eBitwiseAndOne.And(e, oneBigInt)
 
-	if eBitwiseAndOne.Cmp(bigZero) == 1 {
+	if eBitwiseAndOne.Cmp(bigZero) != 0 {
 		t.Mul(t, b)
 		t.Mod(t, m)
 	}
@@ -160,7 +160,7 @@ func XRecover(y *big.Int) *big.Int {
 
 	bigZero := big.NewInt(0)
 
-	if toCompare.Cmp(bigZero) == 1 {
+	if toCompare.Cmp(bigZero) != 0 {
 		xI := new(big.Int)
 
 		xI.Mul(x, I)
@@ -174,7 +174,7 @@ func XRecover(y *big.Int) *big.Int {
 
 	xMod.Mod(x, big.NewInt(2))
 
-	if xMod.Cmp(bigZero) == 1 {
+	if xMod.Cmp(bigZero) != 0 {
 		qSubX := new(big.Int)
 
 		qSubX.Sub(Q, x)
@@ -187,79 +187,53 @@ func XRecover(y *big.Int) *big.Int {
 
 }
 
-func Pass(a string) string {
-	return a
-}
-
 func Edwards(p, q []*big.Int) []*big.Int {
 	X1 := p[0]
 	Y1 := p[1]
 	X2 := q[0]
 	Y2 := q[1]
 
-	opOne := new(big.Int)
-	opTwo := new(big.Int)
-	opThree := big.NewInt(1)
-	opFour := d
+	X3 := new(big.Int).Mul(new(big.Int).Add(new(big.Int).Mul(X1, Y2), new(big.Int).Mul(X2, Y1)), Invert(new(big.Int).Add(big.NewInt(1), new(big.Int).Mul(d, new(big.Int).Mul(new(big.Int).Mul(X1, X2), new(big.Int).Mul(Y1, Y2))))))
+	Y3 := new(big.Int).Mul(new(big.Int).Add(new(big.Int).Mul(Y1, Y2), new(big.Int).Mul(X1, X2)), Invert(new(big.Int).Sub(big.NewInt(1), new(big.Int).Mul(d, new(big.Int).Mul(new(big.Int).Mul(X1, X2), new(big.Int).Mul(Y1, Y2))))))
 
-	opOne.Mul(X1, Y1)
-	opOne.Add(X2, Y2)
-
-	opTwo.Mul(Y1, Y2)
-	opTwo.Add(X1, X2)
-
-	opThree.Add(opThree, d)
-	opThree.Mul(X1, X2)
-	opThree.Mul(Y1, Y2)
-
-	opFour.Neg(opFour)
-	opFour.Mul(X1, X2)
-	opFour.Mul(Y1, Y2)
-
-	opThreeInverted := Invert(opThree)
-	opFourInverted := Invert(opFour)
-
-	opThreeInverted.Mul(opThreeInverted, opOne)
-	opFourInverted.Mul(opFourInverted, opTwo)
-
-	X3 := new(big.Int)
-	Y3 := new(big.Int)
-
-	X3.Mod(opThreeInverted, Q)
-	Y3.Mod(opFourInverted, Q)
+	X3.Mod(X3, Q)
+	Y3.Mod(Y3, Q)
 
 	return []*big.Int{X3, Y3}
 }
 
-func ScalarMult(p []*big.Int, e *big.Float) []*big.Int {
-	bigIntOne := big.NewInt(1)
+func ScalarMult(p []*big.Int, e *big.Int) []*big.Int {
 	bigIntZero := big.NewInt(0)
+	bigIntOne := big.NewInt(1)
 
-	if e.Cmp(new(big.Float).SetInt(bigIntZero)) == 0 {
-		return []*big.Int{bigIntZero, bigIntOne}
+	if e.Cmp(bigIntZero) == 0 {
+		ret := make([]*big.Int, 2)
+
+		ret[0] = bigIntZero
+		ret[1] = bigIntOne
+
+		return ret
 	}
 
-	eDivTwo := new(big.Float)
+	eDivTwo := new(big.Int)
 
-	eDivTwo.Quo(e, big.NewFloat(2))
+	eDivTwo.Div(e, big.NewInt(2))
 
 	qZ := ScalarMult(p, eDivTwo)
 	qZ = Edwards(qZ, qZ)
 
 	eBitwiseAndOne := new(big.Int)
 
-	eInt, _ := new(big.Int).SetString(e.String(), 10)
+	eBitwiseAndOne.And(e, bigIntOne)
 
-	eBitwiseAndOne.And(eInt, bigIntOne)
-
-	if eBitwiseAndOne.Cmp(bigIntZero) == 1 {
+	if eBitwiseAndOne.Cmp(bigIntZero) != 0 {
 		qZ = Edwards(qZ, p)
 	}
 
 	return qZ
 }
 
-func EncodeInt(y *big.Int) string {
+func EncodeInt(y *big.Int) []byte {
 	bits := make([]*big.Int, b)
 	bigIntOne := big.NewInt(1)
 	for i := range bits {
@@ -271,7 +245,7 @@ func EncodeInt(y *big.Int) string {
 		bits[i] = res
 	}
 
-	finStr := ""
+	var finStr []byte
 	for i := 0; i < int(b/8); i++ {
 		toSum := big.NewInt(0)
 		for j := 0; j < 8; j++ {
@@ -279,13 +253,13 @@ func EncodeInt(y *big.Int) string {
 
 			toSum.Add(toSum, lShift)
 		}
-		finStr += fmt.Sprintf("%c", toSum.Int64())
+		finStr = append(finStr, toSum.Bytes()...)
 	}
 
-	return strconv.QuoteToASCII(finStr)
+	return finStr
 }
 
-func EncodePoint(P []*big.Int) string {
+func EncodePoint(P []*big.Int) []byte {
 	x := P[0]
 	y := P[1]
 
@@ -306,8 +280,7 @@ func EncodePoint(P []*big.Int) string {
 
 	bits[len(bits)-1] = resX
 
-	var finStr = ""
-
+	var finStr []byte
 	for i := 0; i < int(b/8); i++ {
 		toSum := big.NewInt(0)
 		for j := 0; j < 8; j++ {
@@ -315,25 +288,16 @@ func EncodePoint(P []*big.Int) string {
 			toSum.Add(toSum, shiftLeft)
 		}
 
-		strChar := string(rune(int(toSum.Int64())))
+		finStr = append(finStr, toSum.Bytes()...)
 
-		finStr += strChar
 	}
-
-	fmt.Print(finStr, "\n")
 
 	return finStr
 
 }
 
-func Bit(h string, i int64) int64 {
-	val := h[i/8]
-	ordStr := fmt.Sprintf("%d", val)
-	ordInt, err := strconv.ParseInt(ordStr, 10, 64)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+func Bit(h []byte, i int64) int64 {
+	ordInt := int64(h[i/8])
 
 	ordShifted := ordInt >> (i % 8)
 
@@ -342,7 +306,7 @@ func Bit(h string, i int64) int64 {
 	return ordBitwiseAnd
 }
 
-func Hint(m string) *big.Int {
+func Hint(m []byte) *big.Int {
 	h := sha512.HashWithSha512(m)
 
 	sum := big.NewInt(0)
@@ -360,10 +324,8 @@ func Hint(m string) *big.Int {
 	return sum
 }
 
-func PublicKey(sk string) string {
+func PublicKey(sk []byte) []byte {
 	h := sha512.HashWithSha512(sk)
-
-	fmt.Print(h, "\n")
 
 	a1 := new(big.Int)
 	a1.Sub(big.NewInt(b), big.NewInt(2))
@@ -386,12 +348,12 @@ func PublicKey(sk string) string {
 
 	a.Add(sumA, a2)
 
-	A := ScalarMult(B, new(big.Float).SetInt(a))
+	A := ScalarMult(B, a)
 
 	return EncodePoint(A)
 }
 
-func Signature(m, sk, pk string) *big.Int {
+func Signature(m, sk, pk []byte) *big.Int {
 	h := sha512.HashWithSha512(sk)
 
 	a1 := new(big.Int)
@@ -415,17 +377,30 @@ func Signature(m, sk, pk string) *big.Int {
 
 	a.Add(sumA, a2)
 
-	hashSub := ""
+	hashSub := make([]byte, b/4)
 
 	for i := b / 8; i < b/4; i++ {
-		hashSub += string(h[i])
+		hashSub[i] = h[i]
 	}
 
-	r := Hint(hashSub + m)
+	var hSM []byte
 
-	R := ScalarMult(B, new(big.Float).SetInt(r))
+	hSM = append(hSM, hashSub...)
+	hSM = append(hSM, m...)
 
-	hintR := Hint(EncodePoint(R) + pk + m)
+	r := Hint(hSM)
+
+	R := ScalarMult(B, r)
+
+	encP := EncodePoint(R)
+
+	var hRR []byte
+
+	hRR = append(hRR, encP...)
+	hRR = append(hRR, pk...)
+	hRR = append(hRR, m...)
+
+	hintR := Hint(hRR)
 
 	hintRBig := new(big.Int)
 	hintRBig.Mul(hintR, a)
@@ -477,7 +452,7 @@ func IsOnCurve(P []*big.Int) bool {
 	return xMulx.Cmp(big.NewInt(0)) == 0
 }
 
-func DecodeInt(s string) *big.Int {
+func DecodeInt(s []byte) *big.Int {
 	sum := big.NewInt(0)
 	twoBig := big.NewInt(2)
 	for i := int64(0); i < b; i++ {
@@ -498,7 +473,7 @@ func DecodeInt(s string) *big.Int {
 	return sum
 }
 
-func DecodePoint(s string) []*big.Int {
+func DecodePoint(s []byte) []*big.Int {
 	y := new(big.Int)
 	twoBig := big.NewInt(2)
 	for i := int64(0); i < b-1; i++ {
@@ -513,6 +488,7 @@ func DecodePoint(s string) []*big.Int {
 		mul.Mul(bitI, powI)
 
 		y.Add(y, mul)
+
 	}
 
 	x := XRecover(y)
@@ -521,8 +497,9 @@ func DecodePoint(s string) []*big.Int {
 
 	xBitWiseAnd.And(x, big.NewInt(1))
 
-	if xBitWiseAnd != big.NewInt(Bit(s, b-1)) {
-		x.Sub(Q, x)
+	if xBitWiseAnd.Cmp(big.NewInt(Bit(s, b-1))) != 0 {
+		nn := new(big.Int).Sub(Q, x)
+		x = nn
 	}
 
 	P := []*big.Int{x, y}
@@ -536,21 +513,22 @@ func DecodePoint(s string) []*big.Int {
 }
 
 func CompreArray(a, b []*big.Int) bool {
-	fmt.Print(a, "   ", b, "\n")
+	a1 := a[0].String()
+	a2 := a[1].String()
+	b1 := b[0].String()
+	b2 := b[1].String()
 
-	for i := range a {
-		if a[i].Cmp(b[i]) == 1 {
-			fmt.Print(a[i], " was unequal to ", b[i], "\n")
-			return false
-		}
+	if a1 != b1 || a2 != b2 {
+		return false
 	}
 
 	return true
 }
 
-func CheckValid(sEnc, m, pkEnc string) bool {
-	s := utils.DecodeBase64(sEnc)
-	pk := utils.DecodeBase64(pkEnc)
+func CheckValid(sEnc, mStr, pkEnc string) bool {
+	s := []byte(utils.DecodeBase64(sEnc))
+	pk := []byte(utils.DecodeBase64(pkEnc))
+	m := []byte(mStr)
 
 	if int64(len(s)) != b/4 {
 		log.Fatal("Signature length wrong")
@@ -563,12 +541,21 @@ func CheckValid(sEnc, m, pkEnc string) bool {
 	R := DecodePoint(s[0 : b/8])
 
 	A := DecodePoint(pk)
+
 	S := DecodeInt(s[b/8 : b/4])
 
-	h := Hint(EncodePoint(R) + pk + m)
+	encR := EncodePoint(R)
 
-	scMultBS := ScalarMult(B, new(big.Float).SetInt(S))
-	scMultAH := ScalarMult(A, new(big.Float).SetInt(h))
+	var hRR []byte
+
+	hRR = append(hRR, encR...)
+	hRR = append(hRR, pk...)
+	hRR = append(hRR, m...)
+
+	h := Hint(hRR)
+
+	scMultBS := ScalarMult(B, S)
+	scMultAH := ScalarMult(A, h)
 	edWards := Edwards(R, scMultAH)
 
 	return CompreArray(scMultBS, edWards)
