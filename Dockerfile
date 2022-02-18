@@ -1,6 +1,6 @@
 FROM golang:1.17
 
-WORKDIR /usr/src/mathcord
+WORKDIR /home/usr/src/mathcord
 
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify

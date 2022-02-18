@@ -1,3 +1,3 @@
 #!/bin/bash
 
-mathcord > /usr/src/app/mathcord.log
+mathcord | tee /home/usr/src/app/mathcord.log
