@@ -116,7 +116,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		result := parser.ShuntingYard(exp)
 		log.Println("Result is ", result)
-		fmt.Printf("%v", json.RawMessage(fmt.Sprintf(`{"type": 4, "data": {"content": "Result is: %s"}} }`, result)))
+		log.Printf("res : %v", json.RawMessage(fmt.Sprintf(`{"type": 4, "data": {"content": "Result is: %s"}} }`, result)))
 		_, err = w.Write(json.RawMessage(fmt.Sprintf(`{"type": 4, "data": {"content": "Result is: %s"}} }`, result)))
 
 		if err != nil {
