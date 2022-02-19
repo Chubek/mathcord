@@ -62,6 +62,7 @@ func init() {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	log.Println("------------ > START < ---------------")
+	w.Header().Set("Content-Type", "application/json")
 
 	log.Println(r)
 
@@ -109,12 +110,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Intersection is: \n", interaction)
 
 	if interaction.Type == 1 {
-		w.Header().Add("Content-Type", "application/json")
+		log.Println("Ping'd, Pong'ing...")
+
 		_, err = w.Write(json.RawMessage(`{"type": 1}`))
 
 		if err != nil {
 			log.Println(err)
 		}
+
+		return
 
 	}
 
@@ -136,13 +140,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		jData, err := json.Marshal(respData)
 		if err != nil {
-			// handle error
+			log.Println(err)
 		}
-		w.Header().Add("Content-Type", "application/json")
 		_, err = w.Write(jData)
 
 		if err != nil {
-			return
+			log.Println(err)
 		}
 
 	}
