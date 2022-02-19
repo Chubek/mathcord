@@ -2,6 +2,7 @@ package discord
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
@@ -110,23 +111,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if interaction.Data != nil {
 		data := interaction.Data.(map[string]interface{})
 		val, _ := data["options"].([]interface{})
-
-		log.Println(val)
-		log.Println(data)
-
 		options, _ := val[0].(map[string]interface{})
-
-		log.Println(options)
-
 		exp_, _ := options["value"]
-
-		log.Println(exp_)
-
 		exp := exp_.(string)
 
 		result := parser.ShuntingYard(exp)
 		log.Println("Result is ", result)
-		_, err = w.Write(json.RawMessage(`{"type": 4, "data": "Result: ` + result + `""}`))
+		_, err = w.Write(json.RawMessage(fmt.Sprintf(`{"type": 4, "data": {"content": "Result is: %s"}} }`, result)))
 
 		if err != nil {
 			log.Println(err)
