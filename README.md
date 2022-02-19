@@ -24,3 +24,12 @@ To run this bot on your own server, just do:
 
 <pre prefix="$">sudo docker-compose up -d</pre>
 
+**You'll need a public key!**
+
+Provide the script with PK through local environment variable `APP_PK`. Just do:
+
+```
+echo APP_PK=<pk> > .env
+```
+
+in the directory.
