@@ -2,7 +2,7 @@
 
 Good day! You can add a version of the bot via:
 
-[<img height="200" width="200" src="https://avatars.githubusercontent.com/u/56949250?v=4" />](https://discord.com/api/oauth2/authorize?client_id=941278523132358686&scope=bot&permissions=380104611840).
+[<img height="200" width="200" src="https://avatars.githubusercontent.com/u/56949250?v=4" />](https://discord.com/api/oauth2/authorize?client_id=941278523132358686&scope=bot&permissions=380104611840)
 
 
 Use:
