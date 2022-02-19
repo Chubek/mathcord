@@ -24,10 +24,3 @@ To run this bot on your own server, just do:
 
 <pre prefix="$">sudo docker-compose up -d</pre>
 
-<style>
-pre::before {
-    content: "$";
-    margin-right: 2px;
-    display: inline;
-}
-</style>
