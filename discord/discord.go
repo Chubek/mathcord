@@ -2,7 +2,6 @@ package discord
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
@@ -12,6 +11,15 @@ import (
 	"net/http"
 	"os"
 )
+
+type ResponseContent struct {
+	Content string `json:"content"`
+}
+
+type ResponseData struct {
+	Type int             `json:"type"`
+	Data ResponseContent `json:"data"`
+}
 
 type Options struct {
 	Name  string `json:"name"`
@@ -53,6 +61,8 @@ func init() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	log.Println("------------ > START < ---------------")
+
 	log.Println(r)
 
 	signature := r.Header.Get("X-Signature-Ed25519")
@@ -99,6 +109,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Intersection is: \n", interaction)
 
 	if interaction.Type == 1 {
+		w.Header().Set("Content-Type", "application/json")
 		_, err = w.Write(json.RawMessage(`{"type": 1}`))
 
 		if err != nil {
@@ -116,20 +127,27 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		result := parser.ShuntingYard(exp)
 		log.Println("Result is ", result)
-		log.Printf("res : %v", json.RawMessage(fmt.Sprintf(`{"type": 4, "data": {"content": "Result is: %s"}} }`, result)))
-		_, err = w.Write(json.RawMessage(fmt.Sprintf(`{"type": 4, "data": {"content": "Result is: %s"}} }`, result)))
+
+		respContent := ResponseContent{Content: "Result is: " + result}
+		respData := ResponseData{
+			Data: respContent,
+			Type: 4,
+		}
+
+		jData, err := json.Marshal(respData)
+		if err != nil {
+			// handle error
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(jData)
 
 		if err != nil {
-			log.Println(err)
+			return
 		}
+
 	}
 
-	log.Println("------- Response is --------")
-	w.Header().Add("content-type", "application/json")
-
-	log.Println(w)
-
-	log.Println("---------------------------")
+	log.Println("------------ > END < ---------------")
 
 }
 
