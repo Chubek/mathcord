@@ -14,7 +14,7 @@ import (
 
 type Options struct {
 	Name  string `json:"name"`
-	Type  string `json:"type"`
+	Type  int    `json:"type"`
 	Value string `json:"value"`
 }
 
@@ -27,7 +27,7 @@ type Data struct {
 type Interaction struct {
 	ID          string      `json:"id"`
 	Type        int         `json:"type"`
-	Data        interface{} `json:"data"`
+	Data        *Data       `json:"data"`
 	GuildID     string      `json:"guild_id"`
 	ChannelID   string      `json:"channel_id"`
 	Message     interface{} `json:"message"`
@@ -108,9 +108,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if interaction.Data != nil {
-		data := interaction.Data.(Data)
-
-		result := parser.ShuntingYard(data.Options.Value)
+		exp := (*interaction.Data).Options.Value
+		result := parser.ShuntingYard(exp)
 		log.Println("Result is ", result)
 		_, err = w.Write(json.RawMessage(`{"type": 4, "data": "Result: ` + result + `""}`))
 
