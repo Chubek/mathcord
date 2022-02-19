@@ -109,7 +109,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Intersection is: \n", interaction)
 
 	if interaction.Type == 1 {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		_, err = w.Write(json.RawMessage(`{"type": 1}`))
 
 		if err != nil {
@@ -138,7 +138,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			// handle error
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		_, err = w.Write(jData)
 
 		if err != nil {
