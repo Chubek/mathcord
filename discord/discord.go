@@ -87,7 +87,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Status set to OK")
 
 	}
-	w.Header().Set("content-type", "application/json")
 
 	var interaction Interaction
 
@@ -123,6 +122,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 	}
+
+	log.Println("------- Response is --------")
+	w.Header().Add("content-type", "application/json")
+
+	log.Println(w)
 
 	log.Println("---------------------------")
 
